@@ -17,6 +17,7 @@ import org.matsim.api.core.v01.events.handler.ActivityEndEventHandler;
 import org.matsim.api.core.v01.events.handler.ActivityStartEventHandler;
 import org.matsim.api.core.v01.events.handler.GenericEventHandler;
 import org.matsim.api.core.v01.population.Person;
+import org.matsim.api.core.v01.population.Population;
 import org.matsim.core.api.experimental.events.EventsManager;
 import org.matsim.vehicles.Vehicle;
 
@@ -24,14 +25,36 @@ public class EventConverter implements ActivityStartEventHandler, ActivityEndEve
 	private final VehicleFinder vehicleFinder;
 
 	private final List<Event> events = new LinkedList<>();
+	private final Population population;
 
-	public EventConverter(VehicleFinder vehicleFinder) {
+	public EventConverter(VehicleFinder vehicleFinder, Population population) {
 		this.vehicleFinder = vehicleFinder;
+		this.population = population;
 	}
 
 	@Override
 	public void handleEvent(ActivityEndEvent event) {
 		if (event.getPersonId().toString().startsWith("freight")) {
+			return;
+		}
+		if (event.getActType().startsWith("education")) {
+			Person p = population.getPersons().get(event.getPersonId());
+			String education = "education";
+			if(Integer.parseInt(p.getAttributes().getAttribute("age").toString()) < 7) {
+				education = "education_kiga";
+			}
+			else if(Integer.parseInt(p.getAttributes().getAttribute("age").toString()) >= 7 && Integer.parseInt(p.getAttributes().getAttribute("age").toString()) < 11) {
+				education = "education_primary";
+			}
+			else if(Integer.parseInt(p.getAttributes().getAttribute("age").toString()) >= 11 && Integer.parseInt(p.getAttributes().getAttribute("age").toString()) < 19) {
+				education = "education_secondary";
+			}
+			else {
+				education = "education_higher";
+			}
+			
+			ActivityEndEvent educationEvent = new ActivityEndEvent(event.getTime(), event.getPersonId(), event.getLinkId(), event.getFacilityId(),education);
+			events.add(educationEvent);
 			return;
 		}
 
@@ -41,6 +64,26 @@ public class EventConverter implements ActivityStartEventHandler, ActivityEndEve
 	@Override
 	public void handleEvent(ActivityStartEvent event) {
 		if (event.getPersonId().toString().startsWith("freight")) {
+			return;
+		}
+		if (event.getActType().startsWith("education")) {
+			Person p = population.getPersons().get(event.getPersonId());
+			String education = "education";
+			if(Integer.parseInt(p.getAttributes().getAttribute("age").toString()) < 7) {
+				education = "education_kiga";
+			}
+			else if(Integer.parseInt(p.getAttributes().getAttribute("age").toString()) >= 7 && Integer.parseInt(p.getAttributes().getAttribute("age").toString()) < 11) {
+				education = "education_primary";
+			}
+			else if(Integer.parseInt(p.getAttributes().getAttribute("age").toString()) >= 11 && Integer.parseInt(p.getAttributes().getAttribute("age").toString()) < 19) {
+				education = "education_secondary";
+			}
+			else {
+				education = "education_higher";
+			}
+			
+			ActivityStartEvent educationEvent = new ActivityStartEvent(event.getTime(), event.getPersonId(), event.getLinkId(), event.getFacilityId(),education);
+			events.add(educationEvent);
 			return;
 		}
 
@@ -79,4 +122,5 @@ public class EventConverter implements ActivityStartEventHandler, ActivityEndEve
 
 		events.forEach(manager::processEvent);
 	}
+	
 }
